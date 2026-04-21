@@ -1,0 +1,204 @@
+"""The :class:`HueyPeriodicAdapter` - read-only scheduler adapter
+for Huey's built-in ``@periodic_task`` decorators.
+
+Huey's periodic tasks are decorator-defined and live in the
+process's ``huey._registry``. They cannot be created, edited, or
+deleted at runtime - the storage is the Python source itself.
+
+This adapter therefore implements only the read path
+(``list_schedules`` / ``get_schedule``). Mutation operations
+return ``NotImplementedError`` with a clear message; the dashboard
+hides those buttons via the capability advertisement.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID, uuid4
+
+from z4j_core.models import CommandResult, Schedule, ScheduleKind
+
+from z4j_hueyperiodic.capabilities import DEFAULT_CAPABILITIES
+
+logger = logging.getLogger("z4j.agent.hueyperiodic.scheduler")
+
+_NAME = "huey-periodic"
+
+
+class HueyPeriodicAdapter:
+    """Scheduler adapter for Huey periodic tasks.
+
+    Args:
+        huey: A live ``huey.api.Huey`` instance - same one passed
+              to :class:`HueyEngineAdapter`.
+        project_id: Optional project id used when minting Schedule
+                    rows. Defaults to a deterministic placeholder
+                    for local-only test setups.
+    """
+
+    name: str = _NAME
+
+    def __init__(
+        self,
+        *,
+        huey: Any,
+        project_id: UUID | None = None,
+    ) -> None:
+        self.huey = huey
+        self._project_id = project_id or uuid4()
+
+    def connect_signals(self, sink: Any) -> None:  # noqa: ARG002
+        return
+
+    def disconnect_signals(self) -> None:
+        return
+
+    # ------------------------------------------------------------------
+    # Read
+    # ------------------------------------------------------------------
+
+    async def list_schedules(self) -> list[Schedule]:
+        out: list[Schedule] = []
+        for task_class, validate_fn in _iter_periodic_tasks(self.huey):
+            try:
+                out.append(self._to_schedule(task_class, validate_fn))
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "z4j hueyperiodic: failed to map %r",
+                    getattr(task_class, "name", "?"),
+                )
+        return out
+
+    async def get_schedule(self, schedule_id: str) -> Schedule | None:
+        for s in await self.list_schedules():
+            if str(s.id) == schedule_id or s.name == schedule_id:
+                return s
+        return None
+
+    # ------------------------------------------------------------------
+    # Write - none. Decorator-defined, source-controlled.
+    # ------------------------------------------------------------------
+
+    async def create_schedule(self, spec: Schedule) -> Schedule:  # noqa: ARG002
+        raise NotImplementedError(
+            "Huey periodic tasks are decorator-defined; edit your "
+            "source and redeploy.",
+        )
+
+    async def update_schedule(
+        self, schedule_id: str, spec: Schedule,  # noqa: ARG002
+    ) -> Schedule:
+        raise NotImplementedError(
+            "Huey periodic tasks are decorator-defined; edit your "
+            "source and redeploy.",
+        )
+
+    async def delete_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+        return CommandResult(
+            status="failed",
+            error=(
+                "Huey periodic tasks are decorator-defined; "
+                "delete the @periodic_task in your source."
+            ),
+        )
+
+    async def enable_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+        return CommandResult(
+            status="failed",
+            error="Huey periodic tasks have no enable/disable toggle",
+        )
+
+    async def disable_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+        return CommandResult(
+            status="failed",
+            error="Huey periodic tasks have no enable/disable toggle",
+        )
+
+    async def trigger_now(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+        return CommandResult(
+            status="failed",
+            error=(
+                "Huey periodic tasks have no trigger-now primitive; "
+                "call the underlying task callable directly."
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Capabilities
+    # ------------------------------------------------------------------
+
+    def capabilities(self) -> set[str]:
+        return set(DEFAULT_CAPABILITIES)
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _to_schedule(self, task_class: Any, validate_fn: Any) -> Schedule:
+        now = datetime.now(UTC)
+        name = getattr(task_class, "name", None) or task_class.__name__
+        # Huey's validate_datetime callable (returned by ``crontab``)
+        # has its source pattern as a closure attribute - best-effort
+        # we surface the function's repr; v1.1 will reach into the
+        # closure for the exact crontab pieces.
+        expression = (
+            getattr(validate_fn, "__qualname__", None) or repr(validate_fn)
+        )[:200]
+        sid = uuid4()
+        return Schedule(
+            id=sid,
+            project_id=self._project_id,
+            engine="huey",
+            scheduler=self.name,
+            name=name,
+            task_name=name,
+            kind=ScheduleKind.CRON,
+            expression=expression,
+            timezone="UTC",
+            is_enabled=True,
+            external_id=name,
+            created_at=now,
+            updated_at=now,
+        )
+
+
+def _iter_periodic_tasks(huey: Any):
+    """Yield ``(task_class, validate_datetime)`` pairs.
+
+    Huey 3.x exposes periodic tasks via ``registry.periodic_tasks``
+    (a method or property returning instances) or
+    ``registry._periodic_tasks`` (the underlying list). Huey 2.x
+    used ``_periodic`` with ``(task_class, validate_fn)`` tuples.
+    Try both for forward+backward compatibility.
+    """
+    registry = getattr(huey, "_registry", None)
+    if registry is None:
+        return
+
+    # Huey 3.x: ``registry.periodic_tasks`` is a *list* of task
+    # instances (not a method). Older code may also expose
+    # ``_periodic_tasks`` for the same. Try both.
+    candidates = list(
+        getattr(registry, "periodic_tasks", None)
+        or getattr(registry, "_periodic_tasks", None)
+        or [],
+    )
+    for entry in candidates:
+        validate_fn = (
+            getattr(entry, "validate_datetime", None)
+            or getattr(entry, "validate_func", None)
+        )
+        yield entry, validate_fn
+
+    # Huey 2.x fallback.
+    legacy = getattr(registry, "_periodic", None) or []
+    for entry in legacy:
+        if isinstance(entry, tuple) and len(entry) >= 2:
+            yield entry[0], entry[1]
+        else:
+            yield entry, None
+
+
+__all__ = ["HueyPeriodicAdapter"]
