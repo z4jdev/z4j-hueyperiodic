@@ -7,7 +7,7 @@
 The Huey `@periodic_task` scheduler adapter for [z4j](https://z4j.com).
 
 Surfaces every `@periodic_task` decorator your Huey app registers on
-the dashboard's Schedules page — read, enable, disable, trigger.
+the dashboard's Schedules page, read, enable, disable, trigger.
 
 ## What it ships
 
@@ -20,7 +20,7 @@ the dashboard's Schedules page — read, enable, disable, trigger.
 | Boot inventory | full snapshot at agent connect; existing schedules show up without editing |
 
 `@periodic_task` schedules are defined in code (decorator argument), so
-create / update / delete are intentionally out of scope — those need a
+create / update / delete are intentionally out of scope, those need a
 deploy round-trip. The dashboard hides buttons it can't honor.
 
 ## Install
@@ -52,13 +52,13 @@ install_agent(
 
 ## Pairs with
 
-- [`z4j-huey`](https://github.com/z4jdev/z4j-huey) — engine adapter
+- [`z4j-huey`](https://github.com/z4jdev/z4j-huey), engine adapter
 
 ## Reliability
 
 - No exception from the adapter ever propagates back into Huey
   consumers or your task code.
-- The decorator's runtime behavior is unchanged — z4j observes through
+- The decorator's runtime behavior is unchanged, z4j observes through
   Huey's standard hooks.
 
 ## Documentation
@@ -67,7 +67,7 @@ Full docs at [z4j.dev/schedulers/huey-periodic/](https://z4j.dev/schedulers/huey
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](LICENSE).
 
 ## Links
 
