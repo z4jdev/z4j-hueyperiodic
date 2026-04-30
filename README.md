@@ -4,11 +4,24 @@
 [![Python](https://img.shields.io/pypi/pyversions/z4j-hueyperiodic.svg)](https://pypi.org/project/z4j-hueyperiodic/)
 [![License](https://img.shields.io/pypi/l/z4j-hueyperiodic.svg)](https://github.com/z4jdev/z4j-hueyperiodic/blob/main/LICENSE)
 
-The Huey @periodic_task scheduler adapter for [z4j](https://z4j.com).
+The Huey `@periodic_task` scheduler adapter for [z4j](https://z4j.com).
 
-Surfaces every `@periodic_task` decorator your Huey app
-registers on the dashboard's Schedules page — read, enable,
-disable, trigger.
+Surfaces every `@periodic_task` decorator your Huey app registers on
+the dashboard's Schedules page — read, enable, disable, trigger.
+
+## What it ships
+
+| Capability | Notes |
+|---|---|
+| List schedules | every `@periodic_task`-decorated function in the registry |
+| Read | by registered name |
+| Enable / disable | via consumer-side gating |
+| Trigger now | enqueues the task immediately, outside the schedule |
+| Boot inventory | full snapshot at agent connect; existing schedules show up without editing |
+
+`@periodic_task` schedules are defined in code (decorator argument), so
+create / update / delete are intentionally out of scope — those need a
+deploy round-trip. The dashboard hides buttons it can't honor.
 
 ## Install
 
@@ -16,9 +29,37 @@ disable, trigger.
 pip install z4j-huey z4j-hueyperiodic
 ```
 
+```python
+from huey import RedisHuey
+from z4j_bare import install_agent
+from z4j_huey import HueyEngineAdapter
+from z4j_hueyperiodic import HueyPeriodicAdapter
+
+huey = RedisHuey("myapp", url="redis://localhost")
+
+@huey.periodic_task(crontab(minute="*/5"))
+def cleanup():
+    ...
+
+install_agent(
+    engines=[HueyEngineAdapter(huey=huey)],
+    schedulers=[HueyPeriodicAdapter(huey=huey)],
+    brain_url="https://brain.example.com",
+    token="z4j_agent_...",
+    project_id="my-project",
+)
+```
+
 ## Pairs with
 
 - [`z4j-huey`](https://github.com/z4jdev/z4j-huey) — engine adapter
+
+## Reliability
+
+- No exception from the adapter ever propagates back into Huey
+  consumers or your task code.
+- The decorator's runtime behavior is unchanged — z4j observes through
+  Huey's standard hooks.
 
 ## Documentation
 
