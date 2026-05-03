@@ -1,8 +1,8 @@
 # z4j-hueyperiodic
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-hueyperiodic.svg)](https://pypi.org/project/z4j-hueyperiodic/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-hueyperiodic.svg)](https://pypi.org/project/z4j-hueyperiodic/)
-[![License](https://img.shields.io/pypi/l/z4j-hueyperiodic.svg)](https://github.com/z4jdev/z4j-hueyperiodic/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-hueyperiodic.svg?v=1.4.0)](https://pypi.org/project/z4j-hueyperiodic/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-hueyperiodic.svg?v=1.4.0)](https://pypi.org/project/z4j-hueyperiodic/)
+[![License](https://img.shields.io/pypi/l/z4j-hueyperiodic.svg?v=1.4.0)](https://github.com/z4jdev/z4j-hueyperiodic/blob/main/LICENSE)
 
 The Huey `@periodic_task` scheduler adapter for [z4j](https://z4j.com).
 
