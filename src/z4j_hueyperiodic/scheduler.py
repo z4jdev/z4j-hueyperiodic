@@ -22,7 +22,7 @@ from z4j_core.models import CommandResult, Schedule, ScheduleKind
 
 from z4j_hueyperiodic.capabilities import DEFAULT_CAPABILITIES
 
-logger = logging.getLogger("z4j.agent.hueyperiodic.scheduler")
+logger = logging.getLogger("z4j.adapter.hueyperiodic.scheduler")
 
 _NAME = "huey-periodic"
 
