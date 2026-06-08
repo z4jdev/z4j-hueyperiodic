@@ -1,9 +1,9 @@
 [project]
 name = "z4j-hueyperiodic"
-version = "1.6.0"
+version = "1.6.7"
 description = "z4j scheduler adapter for Huey @periodic_task (Apache 2.0)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "z4j contributors" }]
 keywords = ["z4j", "huey", "scheduler", "periodic"]
@@ -12,6 +12,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -21,7 +22,12 @@ classifiers = [
 ]
 dependencies = [
     "z4j-core>=1.4.0,<2",
-    "huey>=2.5,<4",
+    # Huey compatibility policy: operator-chosen primary, wide range.
+    # Adapter explicitly handles both Huey 2.x legacy ``_periodic``
+    # and Huey 3.x ``periodic_tasks`` shapes (scheduler.py:184-196),
+    # so the floor can drop to the registry-internals shape that 2.4
+    # matches. ``<4`` retained.
+    "huey>=2.4,<4",
 ]
 
 [project.urls]
