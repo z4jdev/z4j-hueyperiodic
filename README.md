@@ -1,18 +1,18 @@
 # z4j-hueyperiodic
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-hueyperiodic.svg?v=1.6.7)](https://pypi.org/project/z4j-hueyperiodic/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-hueyperiodic.svg?v=1.6.7)](https://pypi.org/project/z4j-hueyperiodic/)
-[![License](https://img.shields.io/pypi/l/z4j-hueyperiodic.svg?v=1.6.7)](https://github.com/z4jdev/z4j-hueyperiodic/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-hueyperiodic.svg?v=1.7.0)](https://pypi.org/project/z4j-hueyperiodic/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-hueyperiodic.svg?v=1.7.0)](https://pypi.org/project/z4j-hueyperiodic/)
+[![License](https://img.shields.io/pypi/l/z4j-hueyperiodic.svg?v=1.7.0)](https://github.com/z4jdev/z4j-hueyperiodic/blob/main/LICENSE)
 
 The Huey `@periodic_task` scheduler adapter for [z4j](https://z4j.com).
 
 Surfaces every `@periodic_task` decorator your Huey app registers on
-the dashboard's Schedules page, read, enable, disable, trigger.
+the dashboard's Schedules page as read-only inventory.
 
 ## Compatibility
 
 - Huey 2.4+ and <4
-- Python 3.10+
+- Python 3.11+
 
 Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
 
@@ -22,13 +22,14 @@ Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
 |---|---|
 | List schedules | every `@periodic_task`-decorated function in the registry |
 | Read | by registered name |
-| Enable / disable | via consumer-side gating |
-| Trigger now | enqueues the task immediately, outside the schedule |
 | Boot inventory | full snapshot at agent connect; existing schedules show up without editing |
 
-`@periodic_task` schedules are defined in code (decorator argument), so
-create / update / delete are intentionally out of scope, those need a
-deploy round-trip. The dashboard hides buttons it can't honor.
+This adapter is **read-only** (`capabilities()` returns `{list, read}`).
+Huey's periodic tasks are decorator-defined in your source (the
+`@periodic_task` argument *is* the schedule), so create / update / delete /
+enable / disable / trigger-now are all out of scope, those need a source
+edit and deploy round-trip. The dashboard greys out the buttons it can't
+honor.
 
 ## Install
 
@@ -37,7 +38,7 @@ pip install z4j-huey z4j-hueyperiodic
 ```
 
 ```python
-from huey import RedisHuey
+from huey import RedisHuey, crontab
 from z4j_bare import install_agent
 from z4j_huey import HueyEngineAdapter
 from z4j_hueyperiodic import HueyPeriodicAdapter

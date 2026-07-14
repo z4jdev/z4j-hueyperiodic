@@ -6,9 +6,8 @@ import pytest
 
 pytest.importorskip("huey")
 
-from huey import MemoryHuey, crontab  # noqa: E402
-
-from z4j_hueyperiodic import HueyPeriodicAdapter  # noqa: E402
+from huey import MemoryHuey, crontab
+from z4j_hueyperiodic import HueyPeriodicAdapter
 
 
 @pytest.fixture

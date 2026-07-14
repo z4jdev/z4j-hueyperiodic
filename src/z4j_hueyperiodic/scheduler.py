@@ -49,7 +49,7 @@ class HueyPeriodicAdapter:
         self.huey = huey
         self._project_id = project_id or uuid4()
 
-    def connect_signals(self, sink: Any) -> None:  # noqa: ARG002
+    def connect_signals(self, sink: Any) -> None:
         return
 
     def disconnect_signals(self) -> None:
@@ -64,7 +64,7 @@ class HueyPeriodicAdapter:
         for task_class, validate_fn in _iter_periodic_tasks(self.huey):
             try:
                 out.append(self._to_schedule(task_class, validate_fn))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception(
                     "z4j hueyperiodic: failed to map %r",
                     getattr(task_class, "name", "?"),
@@ -81,21 +81,21 @@ class HueyPeriodicAdapter:
     # Write - none. Decorator-defined, source-controlled.
     # ------------------------------------------------------------------
 
-    async def create_schedule(self, spec: Schedule) -> Schedule:  # noqa: ARG002
+    async def create_schedule(self, spec: Schedule) -> Schedule:
         raise NotImplementedError(
-            "Huey periodic tasks are decorator-defined; edit your "
-            "source and redeploy.",
+            "Huey periodic tasks are decorator-defined; edit your source and redeploy.",
         )
 
     async def update_schedule(
-        self, schedule_id: str, spec: Schedule,  # noqa: ARG002
+        self,
+        schedule_id: str,
+        spec: Schedule,
     ) -> Schedule:
         raise NotImplementedError(
-            "Huey periodic tasks are decorator-defined; edit your "
-            "source and redeploy.",
+            "Huey periodic tasks are decorator-defined; edit your source and redeploy.",
         )
 
-    async def delete_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+    async def delete_schedule(self, schedule_id: str) -> CommandResult:
         return CommandResult(
             status="failed",
             error=(
@@ -104,19 +104,19 @@ class HueyPeriodicAdapter:
             ),
         )
 
-    async def enable_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+    async def enable_schedule(self, schedule_id: str) -> CommandResult:
         return CommandResult(
             status="failed",
             error="Huey periodic tasks have no enable/disable toggle",
         )
 
-    async def disable_schedule(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+    async def disable_schedule(self, schedule_id: str) -> CommandResult:
         return CommandResult(
             status="failed",
             error="Huey periodic tasks have no enable/disable toggle",
         )
 
-    async def trigger_now(self, schedule_id: str) -> CommandResult:  # noqa: ARG002
+    async def trigger_now(self, schedule_id: str) -> CommandResult:
         return CommandResult(
             status="failed",
             error=(
@@ -140,12 +140,10 @@ class HueyPeriodicAdapter:
         now = datetime.now(UTC)
         name = getattr(task_class, "name", None) or task_class.__name__
         # Huey's validate_datetime callable (returned by ``crontab``)
-        # has its source pattern as a closure attribute - best-effort
-        # we surface the function's repr; v1.1 will reach into the
-        # closure for the exact crontab pieces.
-        expression = (
-            getattr(validate_fn, "__qualname__", None) or repr(validate_fn)
-        )[:200]
+        # keeps its source pattern only as a closure detail, so
+        # best-effort we surface the function's repr rather than
+        # reconstructing the exact crontab pieces.
+        expression = (getattr(validate_fn, "__qualname__", None) or repr(validate_fn))[:200]
         sid = uuid4()
         return Schedule(
             id=sid,
@@ -186,9 +184,8 @@ def _iter_periodic_tasks(huey: Any):
         or [],
     )
     for entry in candidates:
-        validate_fn = (
-            getattr(entry, "validate_datetime", None)
-            or getattr(entry, "validate_func", None)
+        validate_fn = getattr(entry, "validate_datetime", None) or getattr(
+            entry, "validate_func", None
         )
         yield entry, validate_fn
 
