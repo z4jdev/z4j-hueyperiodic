@@ -6,13 +6,15 @@ process's ``huey._registry``. They cannot be created, edited, or
 deleted at runtime - the storage is the Python source itself.
 
 This adapter therefore implements only the read path
-(``list_schedules`` / ``get_schedule``). Mutation operations
-return ``NotImplementedError`` with a clear message; the dashboard
-hides those buttons via the capability advertisement.
+(``list_schedules`` / ``get_schedule``). Create and update raise
+``NotImplementedError``; the remaining mutation methods return failed
+command results. The dashboard hides those buttons via the capability
+advertisement.
 """
 
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -66,9 +68,10 @@ class HueyPeriodicAdapter:
                 out.append(self._to_schedule(task_class, validate_fn))
             except Exception:
                 logger.exception(
-                    "z4j hueyperiodic: failed to map %r",
+                    "z4j hueyperiodic: failed to map %r; skipping this authoritative snapshot",
                     getattr(task_class, "name", "?"),
                 )
+                raise
         return out
 
     async def get_schedule(self, schedule_id: str) -> Schedule | None:
@@ -139,11 +142,7 @@ class HueyPeriodicAdapter:
     def _to_schedule(self, task_class: Any, validate_fn: Any) -> Schedule:
         now = datetime.now(UTC)
         name = getattr(task_class, "name", None) or task_class.__name__
-        # Huey's validate_datetime callable (returned by ``crontab``)
-        # keeps its source pattern only as a closure detail, so
-        # best-effort we surface the function's repr rather than
-        # reconstructing the exact crontab pieces.
-        expression = (getattr(validate_fn, "__qualname__", None) or repr(validate_fn))[:200]
+        expression = _crontab_expression(validate_fn)
         sid = uuid4()
         return Schedule(
             id=sid,
@@ -196,6 +195,48 @@ def _iter_periodic_tasks(huey: Any):
             yield entry[0], entry[1]
         else:
             yield entry, None
+
+
+def _crontab_expression(validate_fn: Any) -> str:
+    """Recover an equivalent five-field cron from Huey's validator closure."""
+    target = getattr(validate_fn, "__func__", validate_fn)
+    if not callable(target):
+        raise TypeError("periodic task has no callable datetime validator")
+    closure = inspect.getclosurevars(target)
+    wrapped = closure.nonlocals.get("validate_datetime")
+    if callable(wrapped):
+        target = wrapped
+        closure = inspect.getclosurevars(target)
+    settings = closure.nonlocals.get("cron_settings")
+    if not isinstance(settings, list) or len(settings) != 5:
+        raise ValueError("periodic validator is not a Huey crontab closure")
+
+    # Huey stores month, day, weekday, hour, minute. Cron renders the reverse
+    # time fields: minute, hour, day, month, weekday.
+    month, day, weekday, hour, minute = settings
+    fields = (
+        _cron_field(minute, range(60)),
+        _cron_field(hour, range(24)),
+        _cron_field(day, range(1, 32)),
+        _cron_field(month, range(1, 13)),
+        _cron_field(weekday, range(8)),
+    )
+    return " ".join(fields)
+
+
+def _cron_field(values: Any, accepted: range) -> str:
+    selected = sorted({int(value) for value in values})
+    full = list(accepted)
+    if selected == full:
+        return "*"
+    if not selected:
+        raise ValueError("Huey crontab field matches no values")
+    if len(selected) == 1:
+        return str(selected[0])
+    step = selected[1] - selected[0]
+    if step > 1 and selected[0] == full[0] and selected == full[::step]:
+        return f"*/{step}"
+    return ",".join(str(value) for value in selected)
 
 
 __all__ = ["HueyPeriodicAdapter"]

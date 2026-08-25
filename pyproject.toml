@@ -1,6 +1,6 @@
 [project]
 name = "z4j-hueyperiodic"
-version = "1.8.0"
+version = "1.9.0"
 description = "z4j scheduler adapter for Huey @periodic_task (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,7 +20,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "z4j-core>=1.8.0,<2",
+    "z4j-core>=1.9.0,<2",
     # Huey compatibility policy: operator-chosen primary, wide range.
     # Adapter explicitly handles both Huey 2.x legacy ``_periodic``
     # and Huey 3.x ``periodic_tasks`` shapes (scheduler.py:184-196),
@@ -37,7 +37,7 @@ Issues = "https://github.com/z4jdev/z4j-hueyperiodic/issues"
 Source = "https://github.com/z4jdev/z4j-hueyperiodic"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
