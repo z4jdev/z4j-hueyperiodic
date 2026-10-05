@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.1 (2026-10-05)
+
+* The requirement is `huey>=2.4` with no upper bound; the adapter's suite,
+  with a real consumer, runs on Huey 2.4.0 and Huey 3.4.0.
+
 ## 1.12.0 (2026-10-03)
 
 * Carried with the coordinated fleet release. No behaviour changed.

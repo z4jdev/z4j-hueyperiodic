@@ -11,7 +11,9 @@ the dashboard's Schedules page as read-only inventory.
 
 ## Compatibility
 
-- Huey 2.4+ and <4
+- Huey 2.4 and later, with no upper bound: Huey 2 and Huey 3 are both
+  supported. The package's suite runs a periodic task under a real Huey
+  consumer on Huey 2.4.0 and on Huey 3.4.0.
 - Python 3.11+
 
 Full per-adapter matrix at <https://docs.z4j.com/reference/compatibility/>.

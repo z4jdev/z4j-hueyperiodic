@@ -1,6 +1,6 @@
 [project]
 name = "z4j-hueyperiodic"
-version = "1.12.0"
+version = "1.12.1"
 description = "z4j scheduler adapter for Huey @periodic_task (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,12 +21,19 @@ classifiers = [
 ]
 dependencies = [
     "z4j-core>=1.12.0,<2",
-    # Huey compatibility policy: operator-chosen primary, wide range.
-    # Adapter explicitly handles both Huey 2.x legacy ``_periodic``
-    # and Huey 3.x ``periodic_tasks`` shapes (scheduler.py:184-196),
-    # so the floor can drop to the registry-internals shape that 2.4
-    # matches. ``<4`` retained.
-    "huey>=2.4,<4",
+    # Huey: a floor and no upper bound. The range is held by tests, not by
+    # the resolver. The gate installs huey==2.4.0 and huey==3.4.0 into clean
+    # environments (scripts/ci-local.sh, the Huey block of the adapterfloors
+    # lane) and runs this package's whole suite on each, as well as on the
+    # locked release. That suite runs a @periodic_task under a real consumer
+    # and compares the inventory with what the scheduler ran
+    # (tests/integration/test_real_engine.py).
+    #
+    # The adapter reads two things, both the same from Huey 2.4 through 3.4:
+    # the registry's ``periodic_tasks`` and the closure of the crontab
+    # validator. Huey 3.4's stepped and wrap-around crontab ranges render as
+    # the explicit value list they expand to.
+    "huey>=2.4",
 ]
 
 [project.urls]
